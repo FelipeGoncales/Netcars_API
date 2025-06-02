@@ -231,12 +231,12 @@ def get_moto():
             cursor.execute(
                 '''
                 SELECT venda_compra.STATUS
-                FROM carros
+                FROM motos
                 INNER JOIN venda_compra
-                ON carros.id_carro = venda_compra.id_veiculo
+                ON motos.id_moto = venda_compra.id_veiculo
                 AND venda_compra.tipo_veiculo = 1
-                WHERE venda_compra.id_usuario = ? AND carros.ativo = 0
-                AND carros.id_carro = ? ND venda_compra.tipo_venda_compra = 1
+                WHERE venda_compra.id_usuario = ? AND motos.ativo = 0
+                AND motos.id_moto = ? AND venda_compra.tipo_venda_compra = 1
                 ''', (id_usuario, idFiltro)
             )
 
@@ -248,7 +248,7 @@ def get_moto():
                 INNER JOIN venda_compra
                 ON motos.id_moto = venda_compra.id_veiculo
                 AND venda_compra.tipo_veiculo = 2
-                WHERE motos.ativo = 0 AND carros.id_moto = ?
+                WHERE motos.ativo = 0 AND motos.id_moto = ?
                 AND venda_compra.tipo_venda_compra = 1 
                 ''', (idFiltro,)
             )
