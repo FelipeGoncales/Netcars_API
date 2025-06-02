@@ -13,6 +13,7 @@ def remover_bearer(token):
 @app.route('/movimentacoes', methods=['GET'])
 def get_movimentacoes():
     token = request.headers.get('Authorization')
+
     if not token:
         return jsonify({'error': 'Token de autenticação necessário'}), 401
 
@@ -30,15 +31,47 @@ def get_movimentacoes():
     cursor.execute('SELECT TIPO_USUARIO FROM USUARIO WHERE ID_USUARIO = ?', (id_usuario,))
     user_type = cursor.fetchone()[0]
     if user_type != 1:  # Apenas administrador tipo 1
-        return jsonify({'error': 'Acesso restrito a administradores'}), 403
+        return jsonify({'error': 'Acesso restrito a administradores.'}), 403
+
+    dia = request.args.get('dia')
+    mes = request.args.get('mes')
+    ano = request.args.get('ano')
+
+    if dia and not mes and not ano:
+        return jsonify({'error': 'Informe o mês e o ano.'}), 400
+
+    if mes and not ano:
+        return jsonify({'error': 'Informe o ano.'}), 400
 
     try:
+        query = '''SELECT ID_RECEITA_DESPESA, TIPO, VALOR, DATA_RECEITA_DESPESA, DESCRICAO, 
+                ID_ORIGEM, TABELA_ORIGEM FROM RECEITA_DESPESA 
+                '''
+
+        params = []
+        where = []
+
         cursor = con.cursor()
 
-        cursor.execute(
-            '''SELECT ID_RECEITA_DESPESA, TIPO, VALOR, DATA_RECEITA_DESPESA, DESCRICAO, 
-               ID_ORIGEM, TABELA_ORIGEM FROM RECEITA_DESPESA 
-               ORDER BY DATA_RECEITA_DESPESA DESC''')
+        if dia or mes or ano:
+            if ano:
+                where.append("EXTRACT(YEAR FROM DATA_RECEITA_DESPESA) = ?")
+                params.append(ano)
+            if mes:
+                where.append("EXTRACT(MONTH FROM DATA_RECEITA_DESPESA) = ?")
+                params.append(mes)
+            if dia:
+                where.append("EXTRACT(DAY FROM DATA_RECEITA_DESPESA) = ?")
+                params.append(dia)
+
+            sentenca = ' WHERE '+' AND '.join(where)
+
+            query += sentenca + " ORDER BY DATA_RECEITA_DESPESA DESC"
+
+            cursor.execute(query, params)
+        else:
+            query += " ORDER BY DATA_RECEITA_DESPESA DESC"
+            cursor.execute(query)
 
         resposta = cursor.fetchall()
 
