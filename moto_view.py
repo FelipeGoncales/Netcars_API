@@ -213,6 +213,7 @@ def get_moto():
     cursor = con.cursor()
 
     if token:
+
         token = remover_bearer(token)
         payload = jwt.decode(token, senha_secreta, algorithms=['HS256'])
         id_usuario = payload['id_usuario']
@@ -221,20 +222,23 @@ def get_moto():
         tipo_user = cursor.fetchone()[0]
 
         if tipo_user == 3:
-            cursor.execute('SELECT 1 FROM MOTOS WHERE RESERVADO IS TRUE AND ID_USUARIO_RESERVA = ? AND ID_MOTO = ?', (id_usuario, idFiltro))
+            cursor.execute(
+                'SELECT ID_USUARIO_RESERVA FROM MOTOS WHERE RESERVADO IS TRUE AND ID_USUARIO_RESERVA = ? AND ID_MOTO = ?',
+                (id_usuario, idFiltro))
         else:
-            cursor.execute('SELECT 1 FROM MOTOS WHERE RESERVADO IS TRUE AND ID_MOTO = ?', (idFiltro,))
+            cursor.execute('SELECT ID_USUARIO_RESERVA FROM MOTOS WHERE RESERVADO IS TRUE AND ID_MOTO = ?',(idFiltro,))
 
         usuario_reservou = cursor.fetchone()
 
         if tipo_user == 3:
+
             cursor.execute(
                 '''
                 SELECT venda_compra.STATUS
                 FROM motos
                 INNER JOIN venda_compra
                 ON motos.id_moto = venda_compra.id_veiculo
-                AND venda_compra.tipo_veiculo = 1
+                AND venda_compra.tipo_veiculo = 2
                 WHERE venda_compra.id_usuario = ? AND motos.ativo = 0
                 AND motos.id_moto = ? AND venda_compra.tipo_venda_compra = 1
                 ''', (id_usuario, idFiltro)
@@ -260,12 +264,15 @@ def get_moto():
             status_venda = carro_vendido[0]
 
         if usuario_reservou or carro_vendido:
+
             cursor.execute(f'{query} WHERE ID_MOTO = ?', (idFiltro,))
 
             moto = cursor.fetchone()
 
             images_dir = os.path.join(app.root_path, upload_folder, 'Motos', str(idFiltro))
             imagens = []
+
+            # Verifica se o diretório existe
             if os.path.exists(images_dir):
                 for file in os.listdir(images_dir):
                     if file.lower().endswith(('.png', '.jpg', '.jpeg', '.gif')):

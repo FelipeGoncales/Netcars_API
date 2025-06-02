@@ -420,12 +420,27 @@ def gerar_qrcode_parcela_atual(tipo):
 
     cursor.execute('SELECT ID_FINANCIAMENTO FROM FINANCIAMENTO WHERE ID_USUARIO = ?', (id_usuario,))
 
-    result_financ = cursor.fetchone()
+    result_financ = cursor.fetchall()
 
     if not result_financ:
         return jsonify({'error': 'Nenhum financiamento encontrado.'}), 400
 
-    id_financiamento = result_financ[0]
+    id_financiamento_em_andamento = 0
+
+    for result in result_financ:
+        id_financiamento = result[0]
+
+        cursor.execute('''
+            SELECT 1 FROM VENDA_COMPRA
+            WHERE STATUS = 1
+            AND ID_FINANCIAMENTO = ?
+        ''', (id_financiamento,))
+
+        concluido = cursor.fetchone()
+
+        if concluido:
+            id_financiamento_em_andamento = id_financiamento
+            break
 
     if tipo == 'recente':
         cursor.execute('''
@@ -437,7 +452,7 @@ def gerar_qrcode_parcela_atual(tipo):
             WHERE ID_FINANCIAMENTO = ?
             AND STATUS NOT IN (3, 4)
             ORDER BY DATA_VENCIMENTO ASC;
-        ''', (id_financiamento,))
+        ''', (id_financiamento_em_andamento,))
     elif tipo == 'amortizar':
         cursor.execute('''
                 SELECT FIRST 1
@@ -448,7 +463,7 @@ def gerar_qrcode_parcela_atual(tipo):
                 WHERE ID_FINANCIAMENTO = ?
                 AND STATUS NOT IN (3, 4)
                 ORDER BY DATA_VENCIMENTO DESC;
-            ''', (id_financiamento,))
+            ''', (id_financiamento_em_andamento,))
     else:
         return jsonify({'error': 'Parâmetro inválido.'}), 400
 
