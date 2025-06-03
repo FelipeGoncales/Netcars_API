@@ -1,5 +1,4 @@
 import random
-
 from flask import Flask, jsonify, request
 from main import app, con, senha_secreta
 import re
@@ -16,14 +15,36 @@ def generate_token(user_id, email):
     return token
 
 def validar_senha(senha):
+    #
+    # maiuscula = False
+    # minuscula = False
+    # numero = False
+    # especial = False
+    #
+    # for s in senha:
+    #     if s.isupper():
+    #         maiuscula = True
+    #     if s.islower():
+    #         minuscula = True
+    #     if s.isdigit():
+    #         numero = True
+    #     if s.isanum():
+    #         especial = True
+    # if not maiuscula or minuscula or numero or especial:
+    #     return jsonify(("a senha deve cpnter éçp ,enps uma sldfkjgfdjhgio"))
+    #
+    
     if len(senha) < 8:
         return "A senha deve ter pelo menos 8 caracteres."
 
-    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", senha):
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-]', senha):
         return "A senha deve conter pelo menos um símbolo especial (!@#$%^&*...)."
 
     if not re.search(r"[A-Z]", senha):
         return "A senha deve conter pelo menos uma letra maiúscula."
+
+    if not re.search(r"[0-9]", senha):
+        return "A senha deve conter pelo menos um número."
 
     return True
 
