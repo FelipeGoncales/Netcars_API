@@ -406,7 +406,9 @@ def obter_telefone():
     cursor.execute('''
         SELECT 
         TELEFONE,
-        EMAIL
+        EMAIL,
+        CIDADE,
+        ESTADO
         FROM CONFIG_GARAGEM
         WHERE ID_CONFIG_GARAGEM = 1
     ''')
@@ -415,10 +417,14 @@ def obter_telefone():
 
     telefone = data[0]
     email = data[1]
+    cidade = data[2]
+    estado = data[3]
 
     return jsonify({
         'telefone': telefone,
-        'email': email
+        'email': email,
+        'cidade': cidade,
+        'estado': estado
     }), 200
 
 @app.route('/att_footer', methods=['PUT'])
