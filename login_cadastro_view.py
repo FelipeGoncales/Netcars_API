@@ -1,4 +1,5 @@
 import random
+
 from flask import Flask, jsonify, request
 from main import app, con, senha_secreta
 import re
@@ -15,29 +16,10 @@ def generate_token(user_id, email):
     return token
 
 def validar_senha(senha):
-    #
-    # maiuscula = False
-    # minuscula = False
-    # numero = False
-    # especial = False
-    #
-    # for s in senha:
-    #     if s.isupper():
-    #         maiuscula = True
-    #     if s.islower():
-    #         minuscula = True
-    #     if s.isdigit():
-    #         numero = True
-    #     if s.isanum():
-    #         especial = True
-    # if not maiuscula or minuscula or numero or especial:
-    #     return jsonify(("a senha deve cpnter éçp ,enps uma sldfkjgfdjhgio"))
-    #
-    
     if len(senha) < 8:
         return "A senha deve ter pelo menos 8 caracteres."
 
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-]', senha):
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", senha):
         return "A senha deve conter pelo menos um símbolo especial (!@#$%^&*...)."
 
     if not re.search(r"[A-Z]", senha):
@@ -202,11 +184,9 @@ def create_user():
         }
     }), 200
 
-
 @app.route('/verificar_email', methods=['POST'])
 def verificar_email():
     data = request.get_json()
-    print(data)
 
     id_usuario = data.get('id_usuario', '')
     email = data.get('email', '')
@@ -288,7 +268,6 @@ def verificar_email():
             'token': token
         }
     }), 200
-
 
 # Rota para reenviar o código de verificação
 @app.route('/reenviar_codigo_verificacao', methods=['POST'])
@@ -420,6 +399,13 @@ def verificar_cadastro_completo():
         return jsonify({'error': 'Token inválido'}), 401
 
     cursor = con.cursor()
+
+    cursor.execute('SELECT TIPO_USUARIO FROM USUARIO WHERE ID_USUARIO = ?', (id_usuario,))
+
+    if cursor.fetchone()[0] in [1, 2]:
+        return jsonify({
+            'success': 'Administrador/Vendedor identificado'
+        }), 200
 
     cursor.execute('SELECT CPF_CNPJ, TELEFONE, DATA_NASCIMENTO FROM USUARIO WHERE ID_USUARIO = ?', (id_usuario,))
 
@@ -596,7 +582,29 @@ def deletar_usuario(id):
         })
 
     cursor.execute('''
-        UPDATE USUARIO SET ATIVO = 0 WHERE ID_USUARIO = ?
+        UPDATE USUARIO 
+        SET 
+            ATIVO = 0,
+            CPF = NULL,
+            TELEFONE = NULL,
+            DATA_NASCIMENTO = NULL
+        WHERE ID_USUARIO = ?
+    ''', (id,))
+
+    cursor.execute('''
+        UPDATE CARROS
+        SET ID_USUARIO_RESERVA = NULL,
+        RESERVADO_EM = NULL,
+        RESERVADO = NULL
+        WHERE ID_USUARIO_RESERVA = ?
+    ''', (id,))
+
+    cursor.execute('''
+        UPDATE MOTOS
+        SET ID_USUARIO_RESERVA = NULL,
+        RESERVADO_EM = NULL,
+        RESERVADO = NULL
+        WHERE ID_USUARIO_RESERVA = ?
     ''', (id,))
 
     con.commit()
@@ -608,7 +616,6 @@ def deletar_usuario(id):
     })
 
 tentativas = 0
-
 
 @app.route('/login', methods=['POST'])
 def login_user():
@@ -708,7 +715,7 @@ def verificar_tipo_usuario():
 
     cursor = con.cursor()
 
-    cursor.execute("SELECT TIPO_USUARIO FROM USUARIO WHERE ID_USUARIO = ?", (id_usuario,))
+    cursor.execute("SELECT TIPO_USUARIO FROM USUARIO WHERE ID_USUARIO = ? AND ATIVO = 1", (id_usuario,))
 
     tipo_usuario = cursor.fetchone()
 

@@ -119,6 +119,37 @@ def financiamento():
     if entrada is None or qnt_parcelas is None or id_veic is None or tipo_veic is None:
         return jsonify({'error': 'Dados incompletos'}),400
 
+    cursor.execute('''
+                SELECT TIPO_USUARIO 
+                FROM USUARIO
+                WHERE ID_USUARIO = ?
+            ''', (id_usuario,))
+
+    tipo_usuario = cursor.fetchone()[0]
+
+    if tipo_usuario in [1, 2]:
+        if tipo_veic == 1:
+            cursor.execute('''
+                SELECT ID_USUARIO_RESERVA
+                FROM CARROS
+                WHERE ID_CARRO = ?
+            ''', (id_veic,))
+        elif tipo_veic == 2:
+            cursor.execute('''
+                SELECT ID_USUARIO_RESERVA
+                FROM MOTOS
+                WHERE ID_MOTO = ?
+            ''', (id_veic,))
+
+        reserva = cursor.fetchone()
+
+        if not reserva:
+            return jsonify({
+                'error': 'Reserva não encontrada'
+            }), 400
+
+        id_usuario = reserva[0]
+
     # Separando a resposta e o status
     response_obj, status_code = calcular_financiamento(id_veic, tipo_veic, qnt_parcelas, entrada)
     dados = response_obj.get_json()
@@ -218,6 +249,12 @@ def financiamento():
             enviar_email_qrcode(email_usuario, "NetCars - Pagamento da Entrada", 'email_pix.html', context)
 
         con.commit()
+
+        if tipo_usuario in [1, 2]:
+            return jsonify({
+                'success': 'Seu parcelamento foi gerado com sucesso!',
+                'adm': True
+            }), 200
 
         return jsonify({'success': 'Seu parcelamento foi gerado com sucesso!'}), 200
 

@@ -160,11 +160,32 @@ def buscar_reserva():
     tipo_usuario = user[0]
 
     if tipo_usuario in [1, 2]:
-        cursor.execute("SELECT ID_CARRO FROM CARROS WHERE RESERVADO IS True")
-        data_carro = cursor.fetchall()
+        search = request.args.get('s')
 
-        cursor.execute("SELECT ID_MOTO FROM MOTOS WHERE RESERVADO IS True")
-        data_moto = cursor.fetchall()
+        if search:
+            termo = f'%{search.lower()}%'
+
+            cursor.execute('''
+                SELECT ID_CARRO 
+                FROM CARROS 
+                WHERE RESERVADO IS True
+                AND (LOWER(MODELO) LIKE ? OR LOWER(MARCA) LIKE ? OR LOWER(PLACA) LIKE ?)
+            ''', (termo, termo, termo))
+            data_carro = cursor.fetchall()
+
+            cursor.execute('''
+                SELECT ID_MOTO 
+                FROM MOTOS 
+                WHERE RESERVADO IS True
+                AND (LOWER(MODELO) LIKE ? OR LOWER(MARCA) LIKE ? OR LOWER(PLACA) LIKE ?)
+            ''', (termo, termo, termo))
+            data_moto = cursor.fetchall()
+        else:
+            cursor.execute(f"SELECT ID_CARRO FROM CARROS WHERE RESERVADO IS True")
+            data_carro = cursor.fetchall()
+
+            cursor.execute(f"SELECT ID_MOTO FROM MOTOS WHERE RESERVADO IS True")
+            data_moto = cursor.fetchall()
     else:
         cursor.execute("SELECT ID_CARRO FROM CARROS WHERE RESERVADO IS True AND ID_USUARIO_RESERVA = ?", (id_usuario,))
         data_carro = cursor.fetchall()

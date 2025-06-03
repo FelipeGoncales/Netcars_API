@@ -169,6 +169,37 @@ def compra_a_vista():
     try:
         cursor = con.cursor()
 
+        cursor.execute('''
+            SELECT TIPO_USUARIO 
+            FROM USUARIO
+            WHERE ID_USUARIO = ?
+        ''', (id_usuario,))
+
+        tipo_usuario = cursor.fetchone()[0]
+
+        if tipo_usuario in [1, 2]:
+            if tipo_veic == 1:
+                cursor.execute('''
+                    SELECT ID_USUARIO_RESERVA
+                    FROM CARROS
+                    WHERE ID_CARRO = ?
+                ''', (id_veic,))
+            elif tipo_veic == 2:
+                cursor.execute('''
+                    SELECT ID_USUARIO_RESERVA
+                    FROM MOTOS
+                    WHERE ID_MOTO = ?
+                ''', (id_veic,))
+
+            reserva = cursor.fetchone()
+
+            if not reserva:
+                return jsonify({
+                    'error': 'Reserva não encontrada'
+                }), 400
+
+            id_usuario = reserva[0]
+
         cursor.execute('SELECT 1 FROM VENDA_COMPRA WHERE ID_USUARIO = ? AND STATUS = 1', (id_usuario,))
 
         if cursor.fetchone():
@@ -213,7 +244,16 @@ def compra_a_vista():
 
         con.commit()
 
-        return jsonify({'success': 'Compra efetuada com sucesso! Veja mais detalhes clicando em "Ver detalhes".'}), 200
+        if tipo_usuario in [1, 2]:
+            return jsonify({
+                'success': 'Compra efetuada com sucesso!',
+                'adm': True
+            }), 200
+
+        return jsonify({
+            'success': 'Compra efetuada com sucesso! Veja mais detalhes clicando em "Ver detalhes".'
+        }), 200
+
     except Exception as e:
         print({"error": e})
         return jsonify({"error": e}), 400
