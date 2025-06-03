@@ -1067,6 +1067,7 @@ def criar_pdf_carro():
     marca = request.args.get('marca')
     ano_fabricacao = request.args.get('ano_fabricacao')
     ano_modelo = request.args.get('ano_modelo')
+    status_carro = request.args.get('status_carro')
 
     query = """SELECT
                     marca,
@@ -1107,17 +1108,20 @@ def criar_pdf_carro():
     params = []
 
     if marca:
-        query += " AND UPPER(marca) = UPPER(?)"
-        params.append(marca)
-    if ano_fabricacao and ano_modelo:
-        query += " AND ano_fabricacao = ? AND ano_modelo = ?"
-        params.extend([ano_fabricacao, ano_modelo])
-    elif ano_fabricacao:
+        if marca.lower() != 'todos':
+            query += " AND UPPER(marca) = UPPER(?)"
+            params.append(marca)
+    if ano_fabricacao:
         query += " AND ano_fabricacao = ?"
         params.append(ano_fabricacao)
-    elif ano_modelo:
+    if ano_modelo:
         query += " AND ano_modelo = ?"
         params.append(ano_modelo)
+    if status_carro:
+        if status_carro.lower() == 'vendido':
+            query += " AND vc.STATUS IN (1, 2)"
+        elif status_carro.lower() == 'disponível':
+            query += " AND vc.ID_VENDA_COMPRA IS NULL"
 
     cursor = con.cursor()
     cursor.execute(query, params)
@@ -1141,6 +1145,7 @@ def criar_pdf_moto():
     marca = request.args.get('marca')
     ano_fabricacao = request.args.get('ano_fabricacao')
     ano_modelo = request.args.get('ano_modelo')
+    status_moto = request.args.get('status_moto')
 
     # Removida a coluna "versao" da consulta, já que parece não existir na tabela motos
     query = """SELECT
@@ -1170,7 +1175,7 @@ def criar_pdf_moto():
                              AND vc.STATUS IN (1, 2)
                         THEN 'Vendido'
                         ELSE 'Disponível'
-                    END AS status_carro
+                    END AS status_moto
                 FROM motos m
                 LEFT JOIN VENDA_COMPRA vc
                   ON m.id_moto = vc.ID_VEICULO
@@ -1180,18 +1185,20 @@ def criar_pdf_moto():
     params = []
 
     if marca:
-        query += " AND UPPER(marca) = UPPER(?)"
-        params.append(marca)
-
-    if ano_fabricacao and ano_modelo:
-        query += " AND ano_fabricacao = ? AND ano_modelo = ?"
-        params.extend([ano_fabricacao, ano_modelo])
-    elif ano_fabricacao:
-        query += " AND ano_fabricacao = ?"
+        if marca.lower() != 'todos':
+            query += " AND UPPER(m.marca) = UPPER(?)"
+            params.append(marca)
+    if ano_fabricacao:
+        query += " AND m.ano_fabricacao = ?"
         params.append(ano_fabricacao)
-    elif ano_modelo:
-        query += " AND ano_modelo = ?"
+    if ano_modelo:
+        query += " AND m.ano_modelo = ?"
         params.append(ano_modelo)
+    if status_moto:
+        if status_moto.lower() == 'vendido':
+            query += " AND vc.STATUS IN (1, 2)"
+        elif status_moto.lower() == 'disponível':
+            query += " AND vc.ID_VENDA_COMPRA IS NULL"
 
     cursor = con.cursor()
     cursor.execute(query, params)
