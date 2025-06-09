@@ -1473,7 +1473,7 @@ def criar_pdf_receita_despesa():
         download_name=filename
     )
 
-# Relatorio de Clientes e Compras
+
 @app.route('/relatorio/cliente_compras', methods=['GET'])
 def criar_pdf_clientes_compras():
     # Parâmetros de filtro (opcional)
@@ -1481,55 +1481,90 @@ def criar_pdf_clientes_compras():
     data_inicio = request.args.get('data_inicio', '').strip()
     data_fim = request.args.get('data_fim', '').strip()
 
-    # Consulta SQL base
+    dia = request.args.get('dia')
+    mes = request.args.get('mes')
+    ano = request.args.get('ano')
+
+    print(dia, mes, ano)
+
+    if dia and not mes and not ano:
+        return jsonify({'error': 'Informe o mês e o ano.'}), 400
+
+    if mes and not ano:
+        return jsonify({'error': 'Informe o ano.'}), 400
+
+    # Consulta SQL base (REMOVIDA A COLUNA FORMA_PAGAMENTO)
     query = '''
-	SELECT PR_BUSCA_CLIENTE_COMPRA.ID_VENDA_COMPRA,
-	PR_BUSCA_CLIENTE_COMPRA.DATA_VENDA_COMPRA,
-	PR_BUSCA_CLIENTE_COMPRA.VALOR_TOTAL,
-	CASE 
-    WHEN PR_BUSCA_CLIENTE_COMPRA.TIPO_VEICULO = 1 THEN 'Carro'
-    WHEN PR_BUSCA_CLIENTE_COMPRA.TIPO_VEICULO = 2 THEN 'Moto'
-    ELSE 'Desconhecido'
-	END AS TIPO_VEICULO,
-	PR_BUSCA_CLIENTE_COMPRA.ID_USUARIO,
-	PR_BUSCA_CLIENTE_COMPRA.MARCA,
-	PR_BUSCA_CLIENTE_COMPRA.MODELO,
-	PR_BUSCA_CLIENTE_COMPRA.ANO_MODELO,
-	PR_BUSCA_CLIENTE_COMPRA.ANO_FABRICACAO,
-	PR_BUSCA_CLIENTE_COMPRA.COR,
-	PR_BUSCA_CLIENTE_COMPRA.PLACA,
-	PR_BUSCA_CLIENTE_COMPRA.NOME_COMPLETO,
-	PR_BUSCA_CLIENTE_COMPRA.DATA_NASCIMENTO,
-	PR_BUSCA_CLIENTE_COMPRA.EMAIL,
-	PR_BUSCA_CLIENTE_COMPRA.TELEFONE,
-	PR_BUSCA_CLIENTE_COMPRA.CPF_CNPJ,
-	PR_BUSCA_CLIENTE_COMPRA.DATA_CADASTRO,
-	round(PR_BUSCA_CLIENTE_COMPRA.valor_fin_aberto,2) AS valor_fin_aberto,
-    round(PR_BUSCA_CLIENTE_COMPRA.valor_fin_pago,2) AS valor_fin_pago,
-    round(PR_BUSCA_CLIENTE_COMPRA.ENTRADA,2) AS ENTRADA,
-    PR_BUSCA_CLIENTE_COMPRA.FORMA_PAGAMENTOo
-	FROM PR_BUSCA_CLIENTE_COMPRA
-	ORDER BY PR_BUSCA_CLIENTE_COMPRA.ID_USUARIO
+        SELECT PR_BUSCA_CLIENTE_COMPRA.ID_VENDA_COMPRA,
+        PR_BUSCA_CLIENTE_COMPRA.DATA_VENDA_COMPRA,
+        PR_BUSCA_CLIENTE_COMPRA.VALOR_TOTAL,
+        CASE 
+        WHEN PR_BUSCA_CLIENTE_COMPRA.TIPO_VEICULO = 1 THEN 'Carro'
+        WHEN PR_BUSCA_CLIENTE_COMPRA.TIPO_VEICULO = 2 THEN 'Moto'
+        ELSE 'Desconhecido'
+        END AS TIPO_VEICULO,
+        PR_BUSCA_CLIENTE_COMPRA.ID_USUARIO,
+        PR_BUSCA_CLIENTE_COMPRA.MARCA,
+        PR_BUSCA_CLIENTE_COMPRA.MODELO,
+        PR_BUSCA_CLIENTE_COMPRA.ANO_MODELO,
+        PR_BUSCA_CLIENTE_COMPRA.ANO_FABRICACAO,
+        PR_BUSCA_CLIENTE_COMPRA.COR,
+        PR_BUSCA_CLIENTE_COMPRA.PLACA,
+        PR_BUSCA_CLIENTE_COMPRA.NOME_COMPLETO,
+        PR_BUSCA_CLIENTE_COMPRA.DATA_NASCIMENTO,
+        PR_BUSCA_CLIENTE_COMPRA.EMAIL,
+        PR_BUSCA_CLIENTE_COMPRA.TELEFONE,
+        PR_BUSCA_CLIENTE_COMPRA.CPF_CNPJ,
+        PR_BUSCA_CLIENTE_COMPRA.DATA_CADASTRO,
+        round(PR_BUSCA_CLIENTE_COMPRA.VALOR_FIN_ABERTO,2) AS VALOR_FIN_ABERTO,
+        round(PR_BUSCA_CLIENTE_COMPRA.VALOR_FIN_PAGO,2) AS VALOR_FIN_PAGO,
+        round(PR_BUSCA_CLIENTE_COMPRA.ENTRADA,2) AS ENTRADA
+        FROM PR_BUSCA_CLIENTE_COMPRA
     '''
+
+    # Lista para armazenar condições WHERE
+    where_conditions = []
     params = []
 
     # Aplicar filtros, se fornecidos
     if cliente:
-        query += ' AND U.NOME LIKE ?'
+        where_conditions.append('PR_BUSCA_CLIENTE_COMPRA.NOME_COMPLETO LIKE ?')
         params.append(f'%{cliente}%')
+
     if data_inicio:
-        query += ' AND VC.DATA_VENDA_COMPRA >= ?'
+        where_conditions.append('PR_BUSCA_CLIENTE_COMPRA.DATA_VENDA_COMPRA >= ?')
         params.append(data_inicio)
+
     if data_fim:
-        query += ' AND VC.DATA_VENDA_COMPRA <= ?'
+        where_conditions.append('PR_BUSCA_CLIENTE_COMPRA.DATA_VENDA_COMPRA <= ?')
         params.append(data_fim)
+
+    # Filtros por data específica
+    if ano:
+        where_conditions.append('EXTRACT(YEAR FROM PR_BUSCA_CLIENTE_COMPRA.DATA_VENDA_COMPRA) = ?')
+        params.append(int(ano))
+
+    if mes:
+        where_conditions.append('EXTRACT(MONTH FROM PR_BUSCA_CLIENTE_COMPRA.DATA_VENDA_COMPRA) = ?')
+        params.append(int(mes))
+
+    if dia:
+        where_conditions.append('EXTRACT(DAY FROM PR_BUSCA_CLIENTE_COMPRA.DATA_VENDA_COMPRA) = ?')
+        params.append(int(dia))
+
+    # Adicionar WHERE se houver condições
+    if where_conditions:
+        query += ' WHERE ' + ' AND '.join(where_conditions)
+
+    # Adicionar ORDER BY
+    query += ' ORDER BY PR_BUSCA_CLIENTE_COMPRA.ID_USUARIO'
 
     cursor = con.cursor()
     cursor.execute(query, params)
     rows = cursor.fetchall()
     cursor.close()
 
-    # Estruturar os dados agrupados por cliente
+    # Estruturar os dados agrupados por cliente (REMOVIDO forma_pagamento)
     clientes = {}
     for (
             id_venda, data_venda, valor_total,
@@ -1537,8 +1572,7 @@ def criar_pdf_clientes_compras():
             marca, modelo, ano_modelo, ano_fabricacao,
             cor, placa, nome, nascimento, email, telefone,
             cpf_cnpj, data_cadastro,
-            valor_fin_aberto, valor_fin_pago, entrada,
-            forma_pagamento
+            valor_fin_aberto, valor_fin_pago, entrada
     ) in rows:
 
         if id_usuario not in clientes:
@@ -1565,23 +1599,22 @@ def criar_pdf_clientes_compras():
             'tipo_veiculo': tipo_veiculo,
             'valor_fin_aberto': valor_fin_aberto,
             'valor_fin_pago': valor_fin_pago,
-            'entrada': entrada,
-            'forma_pagamento': forma_pagamento
+            'entrada': entrada
+            # Removido 'forma_pagamento'
         })
-
 
     pdf = CustomClientesComprasPDF()
     pdf.create_clientes_compras_list(clientes)
     filename = 'relatorio_clientes_compras.pdf'
     pdf.output(filename)
 
-    # Enviar o arquivo PDF como resposta
     return send_file(
         filename,
         mimetype='application/pdf',
         as_attachment=False,
         download_name=filename
     )
+
 
 @app.route('/relatorio/parcelamentos', methods=['GET'])
 def criar_pdf_parcelamentos():
