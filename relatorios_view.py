@@ -1485,8 +1485,6 @@ def criar_pdf_clientes_compras():
     mes = request.args.get('mes')
     ano = request.args.get('ano')
 
-    print(dia, mes, ano)
-
     if dia and not mes and not ano:
         return jsonify({'error': 'Informe o mês e o ano.'}), 400
 
@@ -1614,7 +1612,6 @@ def criar_pdf_clientes_compras():
         as_attachment=False,
         download_name=filename
     )
-
 
 @app.route('/relatorio/parcelamentos', methods=['GET'])
 def criar_pdf_parcelamentos():
