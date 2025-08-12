@@ -35,27 +35,6 @@ def formatarNome(nome):
     partes_formatadas = [p.lower().capitalize() for p in partes]
     return " ".join(partes_formatadas)
 
-@app.route('/manutencao', methods=['GET'])
-def get_manu():
-    cursor = con.cursor()
-
-    cursor.execute('SELECT ID_MANUTENCAO, TIPO_VEICULO, DATA_MANUTENCAO, SITUACAO, VALOR_TOTAL FROM MANUTENCAO ')
-    resultado = cursor.fetchall()
-
-    manu_dic = []
-    for manu in resultado:
-        manu_dic.append({
-            'id_manutencao': manu[0],
-            '': manu[1],
-            'valor_total': manu[2],
-            'situacao': manu[3],
-            'data_manutencao': manu[4],
-        })
-
-    cursor.close()
-
-    return jsonify({'manutencao': manu_dic}), 200
-
 @app.route('/cadastro', methods=['GET'])
 def get_user():
     cursor = con.cursor()
@@ -190,7 +169,7 @@ def verificar_email():
 
     id_usuario = data.get('id_usuario', '')
     email = data.get('email', '')
-    codigo = str(data.get('codigo'))
+    codigo = str(data.get('codigo', ""))
 
     if not codigo:
         return jsonify({'error': 'Dados incompletos.'}), 400
@@ -288,7 +267,7 @@ def reenviar_codigo_verificacao():
         cursor.close()
 
         if not user:
-            return jsonify({'error': 'Usuáro não encontrado.'}), 400
+            return jsonify({'error': 'Usuário não encontrado.'}), 400
 
         id_usuario = user[0]
 
@@ -439,6 +418,11 @@ def update_user(id):
     senha_hash = data.get('senha_hash')
     senha_nova = data.get('senha_nova')
     tipo_user = data.get('tipo_usuario')
+
+    if not nome_completo or not data_nascimento or not cpf_cnpj or not telefone or not email or not tipo_user:
+        return jsonify({
+            'error': 'Dados incompletos'
+        }), 400
 
     # Exemplo: data_nascimento como string 'YYYY-MM-DD'
     data_nascimento_dt = datetime.strptime(data_nascimento, '%Y-%m-%d')  #
