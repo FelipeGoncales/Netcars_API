@@ -161,13 +161,13 @@ def get_movimentacoes_por_tipo(tipo):
             total += valor
 
             movimentacoes.append({
-                'ID_RECEITA_DESPESA':      mov[0],
-                'TIPO':                    tipo_texto,
-                'VALOR':                   valor,
-                'DATA_RECEITA_DESPESA':    mov[3],
-                'DESCRICAO':               mov[4],
-                'ID_ORIGEM':               mov[5],
-                'TABELA_ORIGEM':           mov[6]
+                'id_receita_despesa':      mov[0],
+                'tipo':                    tipo_texto,
+                'valor':                   valor,
+                'data_receita_despesa':    mov[3],
+                'descricao':               mov[4],
+                'id_origem':               mov[5],
+                'tabela_origem':           mov[6]
             })
 
         return jsonify({
@@ -216,7 +216,7 @@ def get_movimentacoes_por_origem(tabela, id_origem):
         resposta = cursor.fetchall()
 
         if not resposta:
-            return jsonify({'message': 'Nenhuma movimentação encontrada para esta origem.'}), 200
+            return jsonify({'message': 'Nenhuma movimentação encontrada para esta origem.'}), 400
 
         movimentacoes = []
 
@@ -225,13 +225,13 @@ def get_movimentacoes_por_origem(tabela, id_origem):
             valor = float(mov[2]) if mov[2] is not None else 0.0
 
             movimentacoes.append({
-                'ID_RECEITA_DESPESA':      mov[0],
-                'TIPO':                    tipo_texto,
-                'VALOR':                   valor,
-                'DATA_RECEITA_DESPESA':    mov[3],
-                'DESCRICAO':               mov[4],
-                'ID_ORIGEM':               mov[5],
-                'TABELA_ORIGEM':           mov[6]
+                'id_receita_despesa':      mov[0],
+                'tipo':                    tipo_texto,
+                'valor':                   valor,
+                'data_receita_despesa':    mov[3],
+                'descricao':               mov[4],
+                'id_origem':               mov[5],
+                'tabela_origem':           mov[6]
             })
 
         return jsonify({
@@ -460,7 +460,15 @@ def get_dashboard_movimentacoes():
     cursor = con.cursor()
 
     cursor.execute('SELECT TIPO_USUARIO FROM USUARIO WHERE ID_USUARIO = ?', (id_usuario,))
-    user_type = cursor.fetchone()[0]
+
+    cursor.execute('SELECT TIPO_USUARIO FROM USUARIO WHERE ID_USUARIO = ?', (id_usuario,))
+    row = cursor.fetchone()
+
+    if row is None:
+        return jsonify({'error': 'Usuário não encontrado'}), 404
+
+    user_type = row[0]
+
     if user_type != 1:  # Apenas administrador tipo 1
         return jsonify({'error': 'Acesso restrito a administradores'}), 403
 
@@ -493,13 +501,13 @@ def get_dashboard_movimentacoes():
             valor = float(mov[2]) if mov[2] is not None else 0.0
 
             todas_movimentacoes.append({
-                'ID_RECEITA_DESPESA':      mov[0],
-                'TIPO':                    tipo_texto,
-                'VALOR':                   valor,
-                'DATA_RECEITA_DESPESA':    mov[3],
-                'DESCRICAO':               mov[4],
-                'ID_ORIGEM':               mov[5],
-                'TABELA_ORIGEM':           mov[6]
+                'id_receita_despesa':      mov[0],
+                'tipo':                    tipo_texto,
+                'valor':                   valor,
+                'data_receita_despesa':    mov[3],
+                'descricao':               mov[4],
+                'id_origem':               mov[5],
+                'tabela_origem':           mov[6]
             })
 
         return jsonify({
